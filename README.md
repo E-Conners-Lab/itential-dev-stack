@@ -80,8 +80,8 @@ The profile system has two layers that let you run exactly what you need:
 
 | Variable | Service |
 |----------|---------|
-| `GATEWAY4_ENABLED=true` | Automation Gateway 4 |
-| `GATEWAY5_ENABLED=true` | Automation Gateway 5 |
+| `GATEWAY4_ENABLED=true` | Itential Gateway 4 |
+| `GATEWAY5_ENABLED=true` | Itential Gateway 5 |
 | `LDAP_ENABLED=true` | OpenLDAP |
 | `MCP_ENABLED=true` | MCP Server (LLM integration) |
 | `OPENBAO_ENABLED=true` | OpenBao (secrets management) |
@@ -169,8 +169,8 @@ Override in `.env` if defaults conflict with existing services on your machine:
 | `GATEWAY_MANAGER_PORT` | Gateway Manager API | `8080` |
 | `MONGO_PORT` | MongoDB | `27017` |
 | `REDIS_PORT` | Redis | `6379` |
-| `GATEWAY4_PORT` | Automation Gateway 4 | `8083` |
-| `GATEWAY5_PORT` | Automation Gateway 5 (gRPC) | `50051` |
+| `GATEWAY4_PORT` | Itential Gateway 4 | `8083` |
+| `GATEWAY5_PORT` | Itential Gateway 5 (gRPC) | `50051` |
 | `LDAP_PORT` | OpenLDAP | `3389` |
 | `MCP_SSE_PORT` | MCP Server | `8000` |
 | `OPENBAO_PORT` | OpenBao | `8200` |
@@ -202,8 +202,8 @@ Different platform images may run as different UIDs. The init container sets log
 |---------|-------------|
 | `make setup` | First-time setup (key, certs, start, configure) |
 | `make up` | Start services |
-| `make iag5` | Deploy IAG5 (Gateway 5) standalone, no Platform |
-| `make iag5-openbao` | Deploy IAG5 + OpenBao side by side (no wiring) |
+| `make gateway5` | Deploy Itential Gateway 5 standalone, no Platform |
+| `make gateway5-openbao` | Deploy Itential Gateway 5 + OpenBao side by side (no wiring) |
 | `make down` | Stop services |
 | `make logs` | Follow all logs (or: `make logs LOG=platform`) |
 | `make status` | Show status and URLs |
@@ -307,31 +307,31 @@ Gateway5 connects to Platform via Gateway Manager. `make setup` handles everythi
 
 If automatic configuration fails, the script displays manual instructions. See [Gateway Manager docs](https://docs.itential.com/docs/iag5-deploy-container#step-3-create-gateway-manager-certificates).
 
-### Standalone IAG5 (no Platform)
+### Standalone Gateway5 (no Platform)
 
-To work on or demo IAG5 without the full Platform stack, deploy it on its own:
+To work on or demo Gateway5 without the full Platform stack, deploy it on its own:
 
 ```bash
-make iag5            # IAG5 only
-make iag5-openbao    # IAG5 + OpenBao (side by side, initialized and unsealed)
+make gateway5          # Gateway5 only
+make gateway5-openbao  # Gateway5 + OpenBao (side by side, initialized and unsealed)
 ```
 
-Both targets generate certificates first and bring up IAG5 without a Platform. They
-require only the IAG5 image (no encryption key or `.env`); if the image is missing, the
+Both targets generate certificates first and bring up Gateway5 without a Platform. They
+require only the Gateway5 image (no encryption key or `.env`); if the image is missing, the
 target attempts a pull and points you to `make login` for AWS ECR access.
 
-With no Platform running, IAG5 logs recurring Gateway Manager connection retries against
+With no Platform running, Gateway5 logs recurring Gateway Manager connection retries against
 the default `platform:8080` host. This is expected and harmless: the container stays up
-and the gRPC server listens on `50051`. To point IAG5 at a real Platform (local or
+and the gRPC server listens on `50051`. To point Gateway5 at a real Platform (local or
 cloud) instead, set `GATEWAY5_CONNECT_HOSTS` in your `.env`.
 
-`make iag5-openbao` brings up OpenBao alongside IAG5 and initializes it, but does not
-wire IAG5 to consume OpenBao secrets — the two simply run together. Get the OpenBao root
+`make gateway5-openbao` brings up OpenBao alongside Gateway5 and initializes it, but does not
+wire Gateway5 to consume OpenBao secrets — the two simply run together. Get the OpenBao root
 token from `volumes/openbao/init-keys.json`.
 
-Tear down with `make down`, which stops IAG5 and OpenBao together.
+Tear down with `make down`, which stops Gateway5 and OpenBao together.
 
-> **Note**: An empty `GATEWAY5_CONNECT_HOSTS` is invalid for IAG5 and causes a startup
+> **Note**: An empty `GATEWAY5_CONNECT_HOSTS` is invalid for Gateway5 and causes a startup
 > panic, so the compose default always resolves to a non-empty host (`platform:8080`).
 > Override it via `.env` to target a different Gateway Manager.
 

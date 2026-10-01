@@ -1,7 +1,7 @@
 # Itential Dev Stack
 # run 'make help' to see available commands
 
-.PHONY: help setup up down logs status certs login clean generate-key iag5 iag5-openbao _ensure-gateway5-image
+.PHONY: help setup up down logs status certs login clean generate-key gateway5 gateway5-openbao _ensure-gateway5-image
 
 .DEFAULT_GOAL := help
 
@@ -47,7 +47,7 @@ endif
 # standalone gateway5/openbao deploys load the full compose file, which references the
 # Platform-only ITENTIAL_ENCRYPTION_KEY; supply a placeholder so loading succeeds without
 # a .env (the platform service is never started under these profiles)
-IAG5_ENV := ITENTIAL_ENCRYPTION_KEY=$${ITENTIAL_ENCRYPTION_KEY:-iag5-standalone-unused}
+GATEWAY5_STANDALONE_ENV := ITENTIAL_ENCRYPTION_KEY=$${ITENTIAL_ENCRYPTION_KEY:-gateway5-standalone-unused}
 
 help: ## Show available commands
 	@echo "Itential Dev Stack"
@@ -55,7 +55,7 @@ help: ## Show available commands
 	@echo "Usage: make [target]"
 	@echo ""
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' Makefile | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "First time? Run: make setup"
 
@@ -66,25 +66,25 @@ up: ## Start all services
 	@docker compose $(PROFILES) up -d
 	@$(MAKE) --no-print-directory status
 
-iag5: _ensure-gateway5-image ## Deploy IAG5 (Automation Gateway 5) standalone, no Platform
+gateway5: _ensure-gateway5-image ## Deploy Itential Gateway 5 standalone, no Platform
 	@./scripts/generate-certificates.sh --quiet
-	@$(IAG5_ENV) docker compose --profile gateway5 up -d
+	@$(GATEWAY5_STANDALONE_ENV) docker compose --profile gateway5 up -d
 	@$(MAKE) --no-print-directory status
 
-iag5-openbao: _ensure-gateway5-image ## Deploy IAG5 + OpenBao side by side (no wiring)
+gateway5-openbao: _ensure-gateway5-image ## Deploy Itential Gateway 5 + OpenBao side by side (no wiring)
 	@./scripts/generate-certificates.sh --quiet
-	@$(IAG5_ENV) docker compose --profile gateway5 --profile openbao up -d
+	@$(GATEWAY5_STANDALONE_ENV) docker compose --profile gateway5 --profile openbao up -d
 	@./scripts/configure-openbao.sh --init-only
 	@$(MAKE) --no-print-directory status
 
 # ensure the gateway5 image is available locally (pulling if needed) before standalone deploys
 _ensure-gateway5-image:
 	@docker image inspect $(GATEWAY5_IMAGE) >/dev/null 2>&1 || { \
-		echo "IAG5 image not found locally: $(GATEWAY5_IMAGE)"; \
+		echo "Gateway5 image not found locally: $(GATEWAY5_IMAGE)"; \
 		echo "Attempting to pull..."; \
-		$(IAG5_ENV) docker compose --profile gateway5 pull gateway5 || { \
+		$(GATEWAY5_STANDALONE_ENV) docker compose --profile gateway5 pull gateway5 || { \
 			echo ""; \
-			echo "Could not pull the IAG5 image."; \
+			echo "Could not pull the Gateway5 image."; \
 			echo "If this is an AWS ECR image, run 'make login' first, then retry."; \
 			exit 1; \
 		}; \
