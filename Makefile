@@ -1,7 +1,7 @@
 # Itential Dev Stack
 # run 'make help' to see available commands
 
-.PHONY: help setup up down logs status certs login clean generate-key gateway5 gateway5-openbao _ensure-gateway5-image
+.PHONY: help setup up down logs status certs login clean generate-key gateway5 gateway5-openbao iag5 iag5-openbao _ensure-gateway5-image
 
 .DEFAULT_GOAL := help
 
@@ -76,6 +76,15 @@ gateway5-openbao: _ensure-gateway5-image ## Deploy Itential Gateway 5 + OpenBao 
 	@$(GATEWAY5_STANDALONE_ENV) docker compose --profile gateway5 --profile openbao up -d
 	@./scripts/configure-openbao.sh --init-only
 	@$(MAKE) --no-print-directory status
+
+# deprecated aliases for the pre-rename target names (hidden from help); remove in a future release
+iag5:
+	@echo "NOTE: 'make iag5' is deprecated, use 'make gateway5' instead."
+	@$(MAKE) --no-print-directory gateway5
+
+iag5-openbao:
+	@echo "NOTE: 'make iag5-openbao' is deprecated, use 'make gateway5-openbao' instead."
+	@$(MAKE) --no-print-directory gateway5-openbao
 
 # ensure the gateway5 image is available locally (pulling if needed) before standalone deploys
 _ensure-gateway5-image:

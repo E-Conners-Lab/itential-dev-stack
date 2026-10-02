@@ -212,6 +212,10 @@ Different platform images may run as different UIDs. The init container sets log
 | `make clean` | Stop and remove all data (destructive) |
 | `make generate-key` | Generate new encryption key |
 
+> **Note**: `make iag5` and `make iag5-openbao` were renamed to `make gateway5` and
+> `make gateway5-openbao`. The old names still work but print a deprecation notice and will
+> be removed in a future release.
+
 ## 🔑 LDAP Authentication
 
 OpenLDAP provides enterprise LDAP authentication testing.
