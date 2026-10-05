@@ -19,7 +19,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # parse args
 # --init-only: initialize, unseal, and enable KV (plus example secrets) without any
-# Platform integration. Used by the iag5-openbao target where no Platform is running.
+# Platform integration. Used by the gateway5-openbao target where no Platform is running.
 INIT_ONLY=false
 for arg in "$@"; do
     case "$arg" in

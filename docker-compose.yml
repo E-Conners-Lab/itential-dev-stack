@@ -7,8 +7,8 @@
 # Profiles:
 #   deps     - MongoDB + Redis only
 #   platform - MongoDB + Redis + Platform (most common)
-#   gateway4 - Automation Gateway 4
-#   gateway5 - Automation Gateway 5
+#   gateway4 - Itential Gateway 4
+#   gateway5 - Itential Gateway 5
 #   ldap     - OpenLDAP (for enterprise auth testing)
 #   mcp      - MCP Server (for LLM integration)
 #   openbao  - OpenBao (Vault-compatible secrets management)
@@ -173,7 +173,7 @@ services:
     restart: unless-stopped
 
   # ==========================================================================
-  # AUTOMATION GATEWAY 4
+  # ITENTIAL GATEWAY 4
   # ==========================================================================
 
   # init gateway4 volumes with correct ownership
@@ -284,7 +284,7 @@ services:
     restart: unless-stopped
 
   # ==========================================================================
-  # AUTOMATION GATEWAY 5
+  # ITENTIAL GATEWAY 5
   # ==========================================================================
 
   gateway5:
@@ -311,9 +311,9 @@ services:
       GATEWAY_APPLICATION_WORKING_DIR: "/etc/gateway"
 
       # gw manager connection
-      # defaults to Platform's Gateway Manager; the standalone iag5 targets reuse
-      # this default and IAG5 retries the connection harmlessly when no Platform is
-      # up. an empty value is invalid for IAG5 (it panics), so :- forces the default
+      # defaults to Platform's Gateway Manager; the standalone gateway5 targets reuse
+      # this default and Gateway5 retries the connection harmlessly when no Platform is
+      # up. an empty value is invalid for Gateway5 (it panics), so :- forces the default
       GATEWAY_CONNECT_HOSTS: "${GATEWAY5_CONNECT_HOSTS:-platform:8080}"
       GATEWAY_CONNECT_CERTIFICATE_FILE: "/etc/ssl/gateway5/gw-manager.pem"
       GATEWAY_CONNECT_PRIVATE_KEY_FILE: "/etc/ssl/gateway5/gw-manager-key.pem"

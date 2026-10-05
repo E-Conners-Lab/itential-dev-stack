@@ -152,7 +152,7 @@ log_section "certificate generation"
 
 log_section "file permissions"
 
-# make iag4 playbooks/scripts executable
+# make gateway4 playbooks/scripts executable
 if [ -d "$PROJECT_ROOT/volumes/gateway4/playbooks" ]; then
     find "$PROJECT_ROOT/volumes/gateway4/playbooks" -type f \( -name "*.yml" -o -name "*.yaml" \) \
         -exec chmod +x {} \; 2>/dev/null || true
