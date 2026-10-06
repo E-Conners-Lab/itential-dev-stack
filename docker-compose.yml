@@ -43,6 +43,9 @@ services:
         target: /data/db
     environment:
       MONGO_INITDB_DATABASE: itential
+      # Workaround for MongoDB 8.0+ on Linux kernels 6.19+ (e.g. recent Docker
+      # Desktop VMs): mongod refuses to start (SERVER-121912)
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
