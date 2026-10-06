@@ -339,6 +339,36 @@ Tear down with `make down`, which stops Gateway5 and OpenBao together.
 > panic, so the compose default always resolves to a non-empty host (`platform:8080`).
 > Override it via `.env` to target a different Gateway Manager.
 
+## 🩺 Troubleshooting
+
+<details>
+<summary>MongoDB restarts with "Linux kernel versions 6.19 and newer has a known incompatibility"</summary>
+
+MongoDB 8.0 refuses to start on Linux kernels 6.19+ (SERVER-121912), which recent Docker Desktop VMs use. The `mongodb` service sets `GLIBC_TUNABLES: glibc.pthread.rseq=1` as a workaround. If you see this error anyway, make sure you are on a current checkout and recreate the container (`make down && make up`). Check `docker logs mongodb` for the actual error.
+
+</details>
+
+<details>
+<summary>Gateway5 logs "Gateway not found in database" or "Certificate trust store is empty" at startup</summary>
+
+Gateway5 starts before `make setup` has created the gateway cluster in Platform and retries until it exists. These messages are expected for the first seconds of a fresh install. If they persist, re-run `make setup` (it is safe to repeat) and check `docker logs gateway5`.
+
+</details>
+
+<details>
+<summary>Logging in as <code>admin</code> shows no applications, or pages return 403</summary>
+
+`make setup` grants the built-in `admin` account every Platform role (`scripts/configure-gateway-manager.sh`, `scripts/sync-admin-roles.sh`). With `LDAP_ENABLED=true` the LDAP directory also has an `admin` user with the same password, which creates a second `admin` account in Platform. `make setup` gives that account the same roles. If you installed an adapter afterwards, re-run `make setup` to sync new roles. You can check which account you are logged in as with `curl -b <cookie> http://localhost:3000/whoami`.
+
+</details>
+
+<details>
+<summary><code>admin@itential</code> returns 401</summary>
+
+`admin@itential` is an LDAP user and only exists when `LDAP_ENABLED=true`. Use `admin` / `admin` otherwise.
+
+</details>
+
 ## 🔧 Installing Adapters
 
 ```bash
