@@ -66,6 +66,26 @@ else
     fi
 fi
 
+# sync roles to the built-in admin account (fixed id). roles added after the
+# initial gateway manager setup (e.g. adapter roles) are otherwise missing
+log_info "Syncing roles to built-in admin..."
+MONGO_ADMIN_RESULT=$(docker exec mongodb mongosh --quiet --eval '
+    db = db.getSiblingDB("itential");
+    var allRoleIds = db.roles.find({}, { _id: 1 }).toArray().map(r => ({ roleId: r._id }));
+    var result = db.accounts.updateOne(
+        { _id: ObjectId("000000000000000000000000") },
+        { $set: { assignedRoles: allRoleIds } }
+    );
+    print(JSON.stringify({ matched: result.matchedCount, roleCount: allRoleIds.length }));
+' 2>/dev/null)
+
+ADMIN_ROLE_COUNT=$(echo "$MONGO_ADMIN_RESULT" | jq -r 'select(.matched == 1) | .roleCount // 0' 2>/dev/null)
+if [ "${ADMIN_ROLE_COUNT:-0}" -gt 0 ]; then
+    log_info "admin synced with $ADMIN_ROLE_COUNT roles"
+else
+    log_warn "Failed to sync built-in admin roles"
+fi
+
 # if LDAP is enabled, sync roles to admin@itential user
 if [ "$LDAP_ENABLED" = "true" ]; then
     log_info "Syncing roles to admin@itential..."
@@ -94,6 +114,48 @@ if [ "$LDAP_ENABLED" = "true" ]; then
         else
             log_warn "Failed to sync admin@itential roles"
         fi
+    fi
+fi
+
+# the LDAP directory also contains a cn=admin user with password "admin". once
+# the LDAP adapter is active, logging in as "admin" authenticates against LDAP
+# and creates a second "admin" account (with no roles) that shadows the built-in
+# one, so admin logs in to a Platform with no applications. provision that
+# account with a login (same as admin@itential) and give it the same access
+if [ "$LDAP_ENABLED" = "true" ]; then
+    log_info "Provisioning LDAP user admin..."
+    PLATFORM_URL="${PLATFORM_URL:-http://localhost:${PLATFORM_PORT:-3000}}"
+    curl -s -o /dev/null -X POST "${PLATFORM_URL}/login" \
+        -H "Content-Type: application/json" \
+        -d '{"username":"admin","password":"admin"}' 2>/dev/null || true
+
+    MONGO_LDAP_ADMIN_RESULT=$(docker exec mongodb mongosh --quiet --eval '
+        db = db.getSiblingDB("itential");
+        var user = db.accounts.findOne({ username: "admin", provenance: "LDAP" });
+        if (!user) {
+            print(JSON.stringify({ error: "user not found" }));
+        } else {
+            var allRoleIds = db.roles.find({}, { _id: 1 }).toArray().map(r => ({ roleId: r._id }));
+            db.accounts.updateOne(
+                { username: "admin", provenance: "LDAP" },
+                { $set: { assignedRoles: allRoleIds } }
+            );
+            var group = db.groups.findOne({ name: "admin_group" }, { _id: 1 });
+            if (group) {
+                db.accounts.updateOne(
+                    { username: "admin", provenance: "LDAP", "memberOf.groupId": { $ne: group._id } },
+                    { $push: { memberOf: { aaaManaged: false, groupId: group._id } } }
+                );
+            }
+            print(JSON.stringify({ roleCount: allRoleIds.length }));
+        }
+    ' 2>/dev/null)
+
+    if echo "$MONGO_LDAP_ADMIN_RESULT" | grep -q '"error"'; then
+        log_warn "LDAP admin account not found - log in as admin once, then re-run this script"
+    else
+        LDAP_ADMIN_ROLE_COUNT=$(echo "$MONGO_LDAP_ADMIN_RESULT" | jq -r '.roleCount // 0' 2>/dev/null)
+        log_info "LDAP admin synced with $LDAP_ADMIN_ROLE_COUNT roles"
     fi
 fi
 
