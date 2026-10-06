@@ -136,19 +136,39 @@ ALL_ROLE_IDS=""
 
 lookup_all_roles() {
     log_info "Looking up all role IDs..."
+
+    # the roles api returns at most 100 results per page regardless of ?limit=,
+    # so page through with skip until we have everything (a single request
+    # silently drops every role past the first 100, including gateway:* and
+    # many application roles)
+    local page_size=100
+    local skip=0
+    local total=0
     local roles_response
-    roles_response=$(curl -sf "${PLATFORM_URL}/authorization/roles?limit=200" -b "$COOKIE_JAR" 2>/dev/null)
+    local all_roles='[]'
+
+    while :; do
+        roles_response=$(curl -sf "${PLATFORM_URL}/authorization/roles?limit=${page_size}&skip=${skip}" -b "$COOKIE_JAR" 2>/dev/null) || break
+        local page_count
+        page_count=$(echo "$roles_response" | jq '.results | length' 2>/dev/null) || break
+        [ -z "$page_count" ] || [ "$page_count" -eq 0 ] && break
+
+        all_roles=$(jq -c -n --argjson a "$all_roles" --argjson b "$(echo "$roles_response" | jq -c '.results')" '$a + $b')
+        total=$(echo "$roles_response" | jq -r '.total // 0')
+        skip=$((skip + page_count))
+        [ "$skip" -ge "$total" ] && break
+    done
 
     # build json array of all role ids -> for assignment
-    ALL_ROLE_IDS=$(echo "$roles_response" | jq -c '[.results[] | {roleId: ._id}]')
+    ALL_ROLE_IDS=$(echo "$all_roles" | jq -c '[.[] | {roleId: ._id}]')
 
     # still extract gateway roles for logging
-    ROLE_GATEWAY_READ=$(echo "$roles_response" | jq -r '.results[] | select(.name == "gateway:read") | ._id')
-    ROLE_GATEWAY_UPDATE=$(echo "$roles_response" | jq -r '.results[] | select(.name == "gateway:update") | ._id')
-    ROLE_GATEWAY_CREATE=$(echo "$roles_response" | jq -r '.results[] | select(.name == "gateway:create") | ._id')
+    ROLE_GATEWAY_READ=$(echo "$all_roles" | jq -r '.[] | select(.name == "gateway:read") | ._id')
+    ROLE_GATEWAY_UPDATE=$(echo "$all_roles" | jq -r '.[] | select(.name == "gateway:update") | ._id')
+    ROLE_GATEWAY_CREATE=$(echo "$all_roles" | jq -r '.[] | select(.name == "gateway:create") | ._id')
 
     local role_count
-    role_count=$(echo "$roles_response" | jq '.results | length')
+    role_count=$(echo "$all_roles" | jq 'length')
     log_info "Found $role_count roles total (including gateway:read, gateway:update, gateway:create)"
 
     if [ -z "$ALL_ROLE_IDS" ] || [ "$ALL_ROLE_IDS" = "[]" ]; then
